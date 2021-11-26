@@ -1,0 +1,14 @@
+﻿@page "/catalog"
+@inject HttpClient Http
+<PageTitle>Item Catalog</PageTitle>
+
+
+
+@code {
+    IList<Product> _productList = new  List<Product>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _productList = await Http?.GetFromJsonAsync<List<Product>>("api/product/getall?storeId=1");
+    }
+}

@@ -1,0 +1,59 @@
+﻿@page "/customerList"
+@inject ICustomerService customerService
+@inject DBInitializer dbInitializer
+<PageTitle>Customer List</PageTitle>
+<div>
+    <RadzenDataGrid Data="@customerList" Count="@totalCount" LoadData="@LoadData" TItem="Customer" AllowVirtualization="true" Style="height:1000px"
+                    AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" LogicalFilterOperator="LogicalFilterOperator.And"
+                    AllowSorting="true">
+        <Columns>
+            <RadzenDataGridColumn TItem="Customer" Property="Id" Title="Product Id" />
+            <RadzenDataGridColumn TItem="Customer" Property="FirstName" Title="First Name" />
+            <RadzenDataGridColumn TItem="Customer" Property="LastName" Title="Last Name" />
+            @*<RadzenDataGridColumn TItem="Customer" Property="Title" Title="Title" />*@
+            <RadzenDataGridColumn TItem="Customer" Property="Gender" Title="Gender" />
+            @*<RadzenDataGridColumn TItem="Customer" Property="Email" Title="Email" />*@
+            <RadzenDataGridColumn TItem="Customer" Property="MobileNumber" Title="Mobile" />
+            @*<RadzenDataGridColumn TItem="Customer" Property="Address1" Title="Address1" />
+            <RadzenDataGridColumn TItem="Customer" Property="Address2" Title="Address2" />*@
+            <RadzenDataGridColumn TItem="Customer" Property="ZipCode" Title="Zip Code" />
+            <RadzenDataGridColumn TItem="Customer" Property="City" Title="City" />
+            @*<RadzenDataGridColumn TItem="Customer" Property="StateProvince" Title="State" />
+            <RadzenDataGridColumn TItem="Customer" Property="Country" Title="Country" />*@
+        </Columns>
+    </RadzenDataGrid>
+    <div class="table-footer">
+            <p>Showing @totalCount Items </p>
+    </div>
+</div>
+
+@code {
+
+    int totalCount = 0;
+    IEnumerable<Customer> customerList;
+
+    async Task LoadData(LoadDataArgs args)
+    {
+
+        using var context = await dbInitializer.GetPreparedDbContextAsync();
+        var query = context.Customers.AsQueryable();
+
+        //totalCount = query.Count();
+
+
+        if (!string.IsNullOrEmpty(args.Filter))
+        {
+            query = query.Where(args.Filter);
+        }
+        totalCount = query.Count();
+
+        if (!string.IsNullOrEmpty(args.OrderBy))
+        {
+            query = query.OrderBy(args.OrderBy);
+        }
+
+        customerList = query.Skip(args.Skip.Value).Take(args.Top.Value).ToList();
+
+    }
+
+}

@@ -1,0 +1,39 @@
+﻿
+@page "/dataSynchronizer"
+
+
+<PageTitle>Sync Data</PageTitle>
+
+<div class="buttons">
+    <button @onclick="StartSynchronization" class="button is-primary">Syn Data</button>
+</div>
+
+<ProductSynComponent @ref="prductSynComponent"  ListenForUpdates="ComponentUpdated"></ProductSynComponent>
+<br/>
+<CustomerSynComponent @ref="customerSynComponent" ListenForUpdates="ComponentUpdated"></CustomerSynComponent>
+
+@code {   
+
+    private CustomerSynComponent customerSynComponent;
+    private ProductSynComponent prductSynComponent;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+
+    }
+
+    private async void StartSynchronization()
+    {
+        await prductSynComponent.StartSync();
+        await customerSynComponent.StartSync();
+    }
+
+    private void ComponentUpdated()
+    {
+        Thread.Sleep(200);
+        StateHasChanged();
+    }
+
+
+}

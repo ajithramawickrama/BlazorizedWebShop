@@ -1,0 +1,85 @@
+﻿<RadzenFieldset Text="Summary">
+    <div class="field">
+        <div class="saleSummary">
+
+            <div class="columns">
+                <div class="col-6 ss-left-column">
+                    No of Items
+                </div>
+                <div class="col-6 ss-right-column">
+                    @if (SaleDetails != null)
+                    {
+                    <p> @SaleDetails.Count()</p>
+                    }
+                </div>
+            </div>
+            <div class="columns">
+                <div class="col-6 ss-left-column">
+                    Total Amount
+                </div>
+                <div class="col-6 ss-right-column">
+                    @if (SaleDetails != null)
+                    {
+                         <p>@SaleDetails.Sum(t => t.UnitPrice).ToString("C2")</p>
+                        
+                    }
+                </div>
+            </div>
+            <div class="columns">
+                <div class="col-6 ss-left-column">
+                    Total Discount
+                </div>
+                <div class="col-6 ss-right-column">
+                    @if (SaleDetails != null)
+                    {
+                         <p> @SaleDetails.Sum(t => t.Discount).ToString("C2")</p>
+                    }
+                </div>
+            </div>
+            <div class="columns">
+                <div class="col-6 ss-left-column">
+                    Invoice Amount
+                </div>
+                <div class="col-6 ss-right-column">
+                    @if (SaleDetails != null)
+                    {
+                    <p> @((SaleDetails.Sum(t => t.UnitPrice) - SaleDetails.Sum(t => t.Discount)).ToString("C2"))</p>
+                    }
+                </div>
+            </div>
+            <div class="columns">               
+                <div class="col-6 ss-right-column-button">
+                    <button class="button is-success" @onclick="@CompleteSale">
+                        <span class="icon is-small">
+                            <i class="fas fa-check"></i>
+                        </span>
+                        <span>Complete</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+</RadzenFieldset>
+
+@code {
+
+    [Parameter,EditorRequired]
+    public List<SaleDetailsDTO> SaleDetails { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback CompleteSaleCallback { get; set; }
+
+        protected override void OnParametersSet()
+        {
+            base.OnParametersSet();
+        }
+
+        private async Task CompleteSale()
+    {
+        await CompleteSaleCallback.InvokeAsync();
+    }
+
+}

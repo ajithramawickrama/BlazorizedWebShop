@@ -1,0 +1,95 @@
+﻿
+
+@page "/ProductCatalog2"
+@inject DBInitializer dbInitializer;
+
+<PageTitle>Product Catalog</PageTitle>
+<div>
+    <RadzenDataGrid Data="@productList" Count="@totalCount" LoadData="@LoadData" TItem="Product" AllowVirtualization="true" Style="height:1000px"
+                    AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" LogicalFilterOperator="LogicalFilterOperator.And"
+                    AllowSorting="true">
+        <Columns>
+            <RadzenDataGridColumn TItem="Product" Property="Id" Title="Product Id" />
+            <RadzenDataGridColumn TItem="Product" Property="Code" Title="Product Code" />
+            <RadzenDataGridColumn TItem="Product" Property="Description" Title="Description" />
+            <RadzenDataGridColumn TItem="Product" Property="UnitPrice" Title="Unit Price">
+                <Template Context="detail">
+                    @String.Format(new System.Globalization.CultureInfo("en-US"), "{0:C}", detail.UnitPrice)
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="Product" Property="DiscountPrice" Title="Discount" />
+            <RadzenDataGridColumn TItem="Product" Property="StockInHand" Title="Stock In Hand" />
+        </Columns>
+    </RadzenDataGrid>
+    <div class="table-footer">
+        <p>Showing @totalCount Items </p>
+    </div>
+</div>
+
+
+@code {
+
+    int totalCount = 0;
+    IEnumerable<Product> productList;
+
+    async Task LoadData(LoadDataArgs args)
+    {
+        using var context = await dbInitializer.GetPreparedDbContextAsync();
+        var query = context.Products.AsQueryable();
+
+        if (!string.IsNullOrEmpty(args.Filter))
+        {
+            query = query.Where(args.Filter);
+        }
+
+        //totalCount = query.ToList().Count();
+
+        if (!string.IsNullOrEmpty(args.OrderBy))
+        {
+            if (args.OrderBy.Contains("UnitPrice"))
+            {
+                if (args.OrderBy.Contains("asc"))
+                {
+                    query = query.ToList().OrderBy(t => t.UnitPrice).AsQueryable();
+                }
+                if (args.OrderBy.Contains("desc"))
+                {
+                    query = query.ToList().OrderByDescending(t => t.UnitPrice).AsQueryable();
+                }
+            }
+            else if (args.OrderBy.Contains("DiscountPrice"))
+            {
+                if (args.OrderBy.Contains("asc"))
+                {
+                    query = query.ToList().OrderBy(t => t.DiscountPrice).AsQueryable();
+                }
+                if (args.OrderBy.Contains("desc"))
+                {
+                    query = query.ToList().OrderByDescending(t => t.DiscountPrice).AsQueryable();
+                }
+            }
+            else if (args.OrderBy.Contains("StockInHand"))
+            {
+                if (args.OrderBy.Contains("asc"))
+                {
+                    query = query.ToList().OrderBy(t => t.StockInHand).AsQueryable();
+                }
+                if (args.OrderBy.Contains("desc"))
+                {
+                    query = query.ToList().OrderByDescending(t => t.StockInHand).AsQueryable();
+                }
+            }
+            else
+            {
+                query = query.OrderBy(args.OrderBy);
+
+            }
+        }
+
+        productList = query.Skip(args.Skip.Value).Take(args.Top.Value).ToList();
+        totalCount = query.Count();
+
+    }
+}
+
+

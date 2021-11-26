@@ -1,0 +1,104 @@
+﻿@inject DBInitializer dbInitializer
+@inject ICustomerService customerService
+
+<RadzenFieldset Text="Customer Info">
+    <div class="field">
+        <label >Mobile Number</label>
+        <div class="control">
+            <RadzenDropDownDataGrid TValue="int" LoadData="@LoadDataVirtualization" AllowFiltering="true" AllowClear="true" AllowVirtualization="true"
+                                    Data="@customerList" Count="@customerCount" TextProperty="MobileNumber" ValueProperty="Id"
+                                    Change=@(args => OnChange(args)) Style="width:100%">
+                <Columns>
+                    <RadzenDropDownDataGridColumn Property="Id" Title="Id" />
+                    <RadzenDropDownDataGridColumn Property="FirstName" Title="First Name" />
+                    <RadzenDropDownDataGridColumn Property="LastName" Title="Last Name" />
+                    <RadzenDropDownDataGridColumn Property="MobileNumber" Title="Mobile" />
+                </Columns>
+            </RadzenDropDownDataGrid>
+        </div>
+    </div>
+    <div class="field">
+        <label >First Name</label>
+        <div class="control">
+            <RadzenTextBox  ReadOnly="true" style="width: 100%;" @bind-Value="@firstName" />
+        </div>
+    </div>
+    <div class="field">
+        <label >Last Name</label>
+        <div class="control">
+            <RadzenTextBox ReadOnly="true" style="width: 100%;" @bind-Value="@lastName" />
+        </div>
+    </div>
+    <div class="field">
+        <label >City</label>
+        <div class="control">
+            <RadzenTextBox ReadOnly="true" style="width: 100%;" @bind-Value="city" />
+
+        </div>
+    </div>
+    <div class="field">
+        <label >Zip Code</label>
+        <div class="control">
+            <RadzenTextBox ReadOnly="true" style="width: 100%;" @bind-Value="zipCode" />
+
+        </div>
+    </div>
+    
+
+</RadzenFieldset>
+
+@code {
+
+    [Parameter]
+    public EventCallback<Customer> SetCusomer { get; set; }
+
+    int customerCount;
+    IEnumerable<Customer> customerList;
+    private Customer selectedCustomer=new Customer();
+
+    private string firstName;
+    private string lastName;
+    private string city;
+    private string zipCode;
+
+    async Task LoadDataVirtualization(LoadDataArgs args)
+    {
+        using var context = await dbInitializer.GetPreparedDbContextAsync();
+        var query = context.Customers.AsQueryable();
+
+        if (!string.IsNullOrEmpty(args.Filter))
+        {
+            query = query.Where(args.Filter);
+        }
+
+        if (!string.IsNullOrEmpty(args.OrderBy))
+        {
+            query = query.OrderBy(args.OrderBy);
+        }
+
+
+        customerCount = query.Count();
+
+        customerList = query.Skip(args.Skip.Value).Take(args.Top.Value).ToList();
+
+        InvokeAsync(StateHasChanged);
+    }
+
+
+    async Task OnChange(object value)
+    {
+        //value.GetType().GetProperty("FirstName").GetValue(value);
+        if (value != null)
+        {
+            var customer =await customerService.GetCustomer(Convert.ToInt32(value));
+            firstName = customer.FirstName;
+            lastName = customer.LastName;
+            city = customer.City;
+            zipCode = customer.ZipCode;
+
+            await SetCusomer.InvokeAsync(customer);
+        }
+
+    }
+
+}

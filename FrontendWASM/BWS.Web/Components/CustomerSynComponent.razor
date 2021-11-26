@@ -1,0 +1,141 @@
+﻿@inject ICustomerService customerService
+<div>
+    <div class="box">
+        <p class="text-primary"><span class="oi oi-person"></span><b>Syncing Customers</b></p>
+
+        <div>
+            <label>@message</label>
+            <div class="columns">
+                <div class="column is-11">
+                    <progress class="progress is-success"
+                                value="@percentage"
+                                max="100"> "@percentage
+                    </progress>
+                </div>
+                <div class="column auto">
+                    <span class="icon">
+                        @switch (syncStatus)
+                        {
+                            case SyncStatus.Started:
+                                <i class="oi  oi-reload icon-size-20 icon-progressing" aria-hidden="true"></i>
+                                break;
+                            case SyncStatus.Completed:
+                                <i class="oi  oi-check icon-size-20 icon-primary" aria-hidden="true"></i>
+                                break;
+                            case SyncStatus.Failed:
+                                <i class="oi  oi-circle-x icon-size-20 icon-danger" aria-hidden="true"></i>
+                                break;
+                        }
+
+                    </span>
+                        
+                </div>
+                    
+            </div>
+                
+        </div>
+        @if (customerException != null)
+        {
+            <div class="notification is-danger">
+                <button @onclick="HideError" class="delete"></button>
+                @customerException.Message
+            </div>
+        }
+
+    </div>
+   
+ </div>
+
+@code {
+
+    private SyncStatus syncStatus = SyncStatus.None;
+    private Exception? customerException = null;
+    private string message = string.Empty;
+    private decimal percentage;
+
+    private int totalNumberOfRecordsToSync=50000;
+    private int itemsSyncsPerBatch = 2500;
+
+    [Parameter]
+    public EventCallback ListenForUpdates { get; set; }
+
+
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+    }
+
+    public async Task StartSync()
+    {
+        try
+        {
+            syncStatus = SyncStatus.Started;
+            await ListenForUpdates.InvokeAsync();
+
+            int startIndex = 0;
+            int remainingCount = totalNumberOfRecordsToSync;
+            int procesingCount = 0;
+            while (remainingCount > 0)
+            {
+                ICollection<Customer> customers = new List<Customer>();
+                if (remainingCount < itemsSyncsPerBatch)
+                {
+                    procesingCount += remainingCount;
+
+                    await SaveToLoacalDb(procesingCount, startIndex);
+
+                    remainingCount = 0;
+                }
+                else
+                {
+                    procesingCount += itemsSyncsPerBatch;
+
+                    await SaveToLoacalDb(procesingCount, startIndex);
+
+                    remainingCount -= itemsSyncsPerBatch;
+                    startIndex += itemsSyncsPerBatch;
+                }
+                if (remainingCount == 0)
+                    break;
+            }
+            syncStatus = SyncStatus.Completed;
+            percentage = 100;
+            await ListenForUpdates.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+
+            customerException = ex;
+            throw ex;
+        }
+
+    }
+
+    private void UpdatePercentage(int total,int processed)
+    {
+        percentage = (processed * 100) / total;
+    }
+
+
+
+    private async Task SaveToLoacalDb(int procesingCount, int startIndex)
+    {
+        var customers = await customerService.GetRange(startIndex, itemsSyncsPerBatch);
+
+        await customerService.SaveBulk(customers.ToList());
+        message = $"Fetched  {procesingCount} of {totalNumberOfRecordsToSync} customers from the API and saved to the local database";
+        await ListenForUpdates.InvokeAsync();
+
+        UpdatePercentage(totalNumberOfRecordsToSync, procesingCount);
+    }
+
+
+
+    private void HideError()
+    {
+        customerException = null;
+    }
+
+
+}

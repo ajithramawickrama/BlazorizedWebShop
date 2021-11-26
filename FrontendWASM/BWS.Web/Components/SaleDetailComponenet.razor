@@ -1,0 +1,121 @@
+﻿
+
+@inject DBInitializer dbInitializer
+@inject IProductService productService
+
+<RadzenFieldset Text="Items">
+    <div class="field">
+        <div class="row">
+            <div class="col-md-3 align-items-center d-flex">
+                <RadzenLabel Text="Product" />
+            </div>
+            <div class="col-md-9">
+                <RadzenDropDownDataGrid TValue="int" LoadData="@LoadDataVirtualization" AllowFiltering="true" AllowClear="true" AllowVirtualization="true"
+                                        Data="@productList" Count="@productCount" TextProperty="Description" ValueProperty="Id"
+                                        Change=@(args => OnChange(args)) Style="width:100%" @bind-Value="dropdownvalue">
+                    <Columns>
+                        <RadzenDropDownDataGridColumn Property="Id" Title="Id" />
+                        <RadzenDropDownDataGridColumn Property="Code" Title="Code" />
+                        <RadzenDropDownDataGridColumn Property="Description" Title="Description" />
+                        <RadzenDropDownDataGridColumn Property="UnitPrice" Title="Price" />
+                    </Columns>
+                </RadzenDropDownDataGrid>
+            </div>
+        </div>
+        
+    </div>
+    <div class="field">
+        <div class="row">
+            <div class="col-md-3 align-items-center d-flex">
+                <label>Quantity</label>
+            </div>
+            <div class="col-md-6">
+                <RadzenNumeric TValue="decimal" Placeholder="0.0" Step="0.1" @bind-Value="@qty" />
+            </div>
+            <div class="col-md-3">
+                <button class="button is-success" @onclick="@AddSaleDetails">
+                    <span class="icon is-small">
+                        <i class="fas fa-check"></i>
+                    </span>
+                    <span>Add Item</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+</RadzenFieldset>
+
+@code {
+
+    [Parameter]
+    public EventCallback<SaleDetailsDTO> AddSaleDetailCallBack { get; set; }
+
+    int productCount;
+    IEnumerable<Product> productList;
+    int dropdownvalue;
+
+    private int productId;
+    private int productCode;
+    private string description;
+    private string unit;
+    private decimal sellingPrice;
+    private decimal discount;
+    private decimal qty = 0;
+
+    async Task LoadDataVirtualization(LoadDataArgs args)
+    {
+        using var context = await dbInitializer.GetPreparedDbContextAsync();
+        var query = context.Products.AsQueryable();
+
+        if (!string.IsNullOrEmpty(args.Filter))
+        {
+            query = query.Where(args.Filter);
+        }
+
+        if (!string.IsNullOrEmpty(args.OrderBy))
+        {
+            query = query.OrderBy(args.OrderBy);
+        }
+
+
+        productCount = query.Count();
+
+        productList = query.Skip(args.Skip.Value).Take(args.Top.Value).ToList();
+
+        InvokeAsync(StateHasChanged);
+    }
+
+
+    async Task OnChange(object value)
+    {
+        //value.GetType().GetProperty("FirstName").GetValue(value);
+        if (value != null)
+        {
+            var product = await productService.GetProduct(Convert.ToInt32(value));
+            productId = product.Id;
+            productCode = product.Code;
+            description = product.Description;
+            sellingPrice = product.UnitPrice;
+            discount = product.DiscountPrice;
+        }
+
+    }
+
+    async void AddSaleDetails()
+    {
+        var saleDetailDTO = new SaleDetailsDTO
+        {
+            Id = productId,
+            ProductCode = productCode,
+            ProductDescription = description,
+            Qty = qty,
+            UnitPrice = sellingPrice,
+            Discount = discount
+        };
+        dropdownvalue = 0;
+        qty = 0;
+        await AddSaleDetailCallBack.InvokeAsync(saleDetailDTO);
+
+    }
+
+}

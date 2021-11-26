@@ -1,0 +1,143 @@
+﻿
+@inject IProductService productService
+<div>
+    <div class="box">
+        <p ><span class="oi oi-list"></span><b>Syncing Products</b></p>
+
+        <div>
+            <label>@message</label>
+            <div class="columns">
+                <div class="column is-11">
+                    <progress class="progress is-success"
+                              value="@percentage"
+                              max="100"> "@percentage</progress>
+                        </div>
+                        <div class="column auto">
+                            <span class="icon">
+                                @switch (syncStatus)
+                                {
+                                    case SyncStatus.Started:
+                                        <i class="oi  oi-reload icon-size-20 icon-progressing" aria-hidden="true"></i>
+                                        break;
+                                    case SyncStatus.Completed:
+                                        <i class="oi  oi-check icon-size-20 icon-primary" aria-hidden="true"></i>
+                                        break;
+                                    case SyncStatus.Failed:
+                                        <i class="oi  oi-circle-x icon-size-20 icon-danger" aria-hidden="true"></i>
+                                        break;
+                                }
+
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                @if (productException != null)
+                {
+                    <div class="notification is-danger">
+                        <button @onclick="HideError" class="delete"></button>
+                        @productException.Message
+                    </div>
+                }
+
+            </div>
+   
+</div>
+
+@code {
+
+    private SyncStatus syncStatus = SyncStatus.None;
+    private Exception? productException = null;
+    private string message = string.Empty;
+    private decimal percentage;
+
+    [Parameter]
+    public EventCallback ListenForUpdates { get; set; }
+
+
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+    }
+
+    public async Task StartSync()
+    {
+        try
+        {
+            syncStatus = SyncStatus.Started;
+            await ListenForUpdates.InvokeAsync();
+
+            //message = $"Fetching products from the API";
+            //await ListenForUpdates.InvokeAsync();
+
+            var products = await productService.GetProductsFromAPI(1);
+            //message = $"Fetched {products?.Count} products from the API";
+            //await ListenForUpdates.InvokeAsync();
+
+
+            if (products !=null && products.Count > 0)
+            {
+                int remainingCount = products.Count;
+                int productsCount = products.Count;
+                int startIndex = 0;
+                int completedCount = 0;
+                while (remainingCount>0)
+                {
+                    List<Product> productsToProcess = null;
+                    if (productsCount - remainingCount >= 1000)
+                    {
+                        productsToProcess = products.Skip(startIndex).Take(1000).ToList();
+
+                        await productService.BulkSaveAsync(productsToProcess);
+
+                        remainingCount -= 1000;
+                        startIndex += 1000;
+                        completedCount += 1000;
+
+
+                    }
+                    else
+                    {
+                        productsToProcess = products.Skip(completedCount).Take(products.Count - completedCount).ToList();
+
+                        await productService.BulkSaveAsync(productsToProcess);
+                        remainingCount = 0;
+                        completedCount =productsCount;
+
+                    }
+                    UpdatePercentage(productsCount, completedCount);
+                    message = $"Fetched  {completedCount} of {productsCount} products from the API and saved to the local database";
+                    await ListenForUpdates.InvokeAsync();
+
+
+                }
+
+            }
+
+            syncStatus = SyncStatus.Completed;
+            percentage = 100;
+            await ListenForUpdates.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+
+            productException = ex;
+            throw ex;
+        }
+
+    }
+
+    private void UpdatePercentage(int total, int processed)
+    {
+        percentage = (processed * 100) / total;
+    }
+
+
+
+    private void HideError()
+    {
+        productException = null;
+    }
+
+
+}

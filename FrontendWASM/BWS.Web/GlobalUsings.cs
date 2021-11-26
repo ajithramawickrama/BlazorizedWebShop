@@ -1,0 +1,12 @@
+﻿global using BWS.Web;
+global using Microsoft.AspNetCore.Components.Web;
+global using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+global using BWS.Data.EFCoreSqllite;
+global using Microsoft.EntityFrameworkCore;
+global using BWS.Application;
+global using BWS.Domain.DatabaseModels;
+global using BWS.Domain.Models; 
+global using BWS.Application.Services;
+global using MyStore.Application.Services.Implementations;
+global using MyStore.Application.DbRepositories;
+global using BWS.Application.DbRepositories;

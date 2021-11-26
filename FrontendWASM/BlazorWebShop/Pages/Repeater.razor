@@ -1,0 +1,55 @@
+﻿@page "/repeater"
+
+<br/>
+
+<TemplatedComponent Items="customers" @ref="repeater">
+    <Header>
+        Customers
+    </Header>
+    <Row Context="customer">
+        <div>
+            <b>@customer.CompanyName</b> 
+            <button class="btn btn-primary" @onclick="@(()=>{
+                EditCustomer(customer);
+            })">Edit</button>
+         </div>
+        <div class="ml-10">@customer.ConatactName</div>
+        <div class="ml-10">@customer.PhoneNumber</div>
+        <br/>
+    </Row>
+    <EditTemplate Context="currentCustomer">
+        <div>
+            <text>Company Name</text> <input type="text" class="form-controler" @bind-value="currentCustomer.CompanyName"></input>
+        </div>
+    </EditTemplate>
+</TemplatedComponent>
+
+@code {
+    private List<Customer> customers;
+    private TemplatedComponent<Customer> repeater;
+    private Customer currentCustomer;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        customers = new List<Customer>()
+        {
+            new Customer{CompanyName="ABC Limited",ConatactName="John Lou",PhoneNumber="23432434"},
+            new Customer{CompanyName="QWE Limited",ConatactName="John Lou",PhoneNumber="3243243"},
+            new Customer{CompanyName="ASD Limited",ConatactName="John Lou",PhoneNumber="3332434"}
+        };
+    } 
+
+    private void EditCustomer(Customer customer)
+    {
+        repeater.ItemToEdit = customer;
+    }
+
+    public class Customer
+    {
+        public string CompanyName { get; set; }
+        public string ConatactName { get; set; }
+        public string PhoneNumber { get; set; }
+    }
+
+}

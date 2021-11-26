@@ -1,0 +1,122 @@
+﻿@page "/pos"
+@inject ISaleService saleService
+
+<PageTitle>Point Of Sale</PageTitle>
+
+<div>
+    @if (shoeSuccessMessage)
+    {
+        <div class="notification is-primary">
+            <button class="delete" @onclick="()=>shoeSuccessMessage=false"></button>
+            Sale was successfully saved to the local database
+        </div>
+    }
+
+    <div class="columns">
+        <div class="column is-7">
+            <div>
+                <SaleDetailComponenet AddSaleDetailCallBack="AddSaleDetail"></SaleDetailComponenet>
+            </div>
+
+            <div>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Code</th>
+                            <th>Description</th>
+                            <th>Qty</th>
+                            <th>Price ($)</th>
+                            <th>Discount ($)</th>
+
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var sale in saleDTO.SaleDetails)
+                        {
+                            <tr>
+                                <td>@sale.ProductCode</td>
+                                <td>@sale.ProductDescription</td>
+                                <td align="right">@sale.Qty</td>
+                                <td align="right">@sale.UnitPrice</td>
+                                <td align="right">@sale.Discount</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="column is-5">
+            <div>
+                <SaleCustomerComponent SetCusomer="SetCustomerCallback"></SaleCustomerComponent>
+            </div>
+            <div>
+                <SaleSummaryComponenet CompleteSaleCallback="CompleteSale" SaleDetails="saleDTO.SaleDetails"></SaleSummaryComponenet>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+
+@code {
+
+    SaleDTO saleDTO = new SaleDTO();
+    private bool shoeSuccessMessage = false;
+
+    public void SetCustomerCallback(Customer customer)
+    {
+        saleDTO.Customer = new SaleCustomer
+        {
+            CustomerId = customer.Id
+        };
+    }
+
+    public void AddSaleDetail(SaleDetailsDTO saleDetailsDTO)
+    {
+        saleDTO.SaleDetails.Add(new SaleDetailsDTO
+        {
+            ProductId = saleDetailsDTO.ProductId,
+            ProductCode = saleDetailsDTO.ProductCode,
+            ProductDescription = saleDetailsDTO.ProductDescription,
+            UnitPrice = saleDetailsDTO.UnitPrice,
+            Qty = saleDetailsDTO.Qty,
+            Discount = saleDetailsDTO.Discount
+        });
+        StateHasChanged();
+    }
+
+    private async Task CompleteSale()
+    {
+        SaleHeader saleHeader = new SaleHeader();
+        saleHeader.CashierId = 1;
+        saleHeader.TransactionDate = DateTime.Now;
+        saleHeader.StoreId = 1;
+        saleHeader.CustomerId = saleDTO.Customer.CustomerId;
+        saleHeader.TotalAmount = saleDTO.SaleDetails.Sum(t => t.UnitPrice);
+        saleHeader.TotalDiscount = saleDTO.SaleDetails.Sum(t => t.Discount);
+        saleHeader.RewardsEarned = 0;
+        saleHeader.SaleDetails = new List<SaleDetail>();
+        foreach(var sd in saleDTO.SaleDetails)
+        {
+            SaleDetail detail = new SaleDetail();
+            detail.ProductId = sd.ProductId;
+            detail.UnitPrice = sd.UnitPrice;
+            detail.Qty = sd.Qty;
+            detail.Discount = sd.Discount;
+            saleHeader.SaleDetails.Add(detail);
+        }
+        int result=await saleService.SaveSaleAsync(saleHeader);
+        if (result > 0)
+        {
+            shoeSuccessMessage = true;
+        }
+    }
+
+
+
+    private void CalculateRewards()
+    {
+
+    }
+
+}
